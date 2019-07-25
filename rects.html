@@ -1,0 +1,152 @@
+<html>
+<head>
+</head>
+<body>
+
+<canvas id="tCanvas" width="800" height="600" style="border:1px solid black;"></canvas>
+
+<script>
+
+	class GLine {
+		constructor(x1, y1, x2, y2, limits) {
+			this.m = (y2-y1)/(x2-x1);
+			this.x1 = x1;
+			this.y1 = y1;
+			this.limits = limits;
+		}
+
+		setValues(x1, y1, x2, y2, limits) {
+			this.m = (y2-y1)/(x2-x1);
+			this.x1 = x1;
+			this.y1 = y1;
+			this.x2 = x2;
+			this.y2 = y2;
+			this.limits = limits;
+		}
+
+
+		f(x){
+			return this.m * ( x - this.x1 ) + this.y1;
+		}
+
+		finv(y) {
+			return ((y - this.y1)/this.m) + this.x1;
+		}
+
+		intersects(line) {
+			var m1 = this.m;
+			var m2 = line.m;
+			if(m1-m2 == 0){
+				return false;
+			}
+
+			var x = (this.m * this.x1 - line.m * line.x1 + line.y1 - this.y1)/(m1-m2);
+			var y = this.f(x);
+			var oy = line.f(x);
+			
+			var isOnBoundary  = y <= this.limits[1] && y >= this.limits[0];  
+			var oisOnBoundary = oy <= line.limits[1] && oy >= line.limits[0];  
+
+			if ( y == oy && isOnBoundary && oisOnBoundary ) {
+				return true;
+			}
+
+			return false;
+		}
+
+
+		draw(ctx, w, h) {
+			var y1 = this.limits[0];
+			var y2 = this.limits[1];
+			var x1 = this.finv(y1);
+			var x2 = this.finv(y2);
+
+			//console.log("(" + x1 + ", " + y1 + ") (" + x2 + ", " + y2 + ")" );
+
+			var f_x1 = this.finv(y1) + w/2;
+			var f_y1 = -y1 + h/2;
+			var f_x2 = this.finv(y2) + w/2;
+			var f_y2 = -y2 + h/2;
+
+			ctx.moveTo(f_x1, f_y1);
+			ctx.lineTo(f_x2, f_y2);
+			ctx.stroke();
+		}
+	}
+ 
+	class GDiamond {
+		constructor(w, h, x, y) {
+			this.w = w;
+			this.h = h;
+			this.x = x;
+			this.y = y;
+			/* Upper Left Line */
+			this.ul_line = new GLine(this.x - this.w/2, this.y, this.x, this.y + this.h/2, [this.y, this.y + this.h/2]);
+			/* Upper Right Line */
+			this.ur_line = new GLine(this.x + this.w/2, this.y, this.x, this.y + this.h/2, [this.y, this.y + this.h/2]);
+			/* Lower Left Line */
+			this.ll_line = new GLine(this.x, this.y - this.h/2, this.x - this.w/2, this.y, [this.y - this.h/2, this.y]);
+			/* Lower Right Line */
+			this.lr_line = new GLine(this.x, this.y - this.h/2, this.x + this.w/2, this.y, [this.y - this.h/2, this.y]);
+		}
+
+		updateLines() {
+		
+			this.ul_line.setValues(this.x - this.w/2, this.y, this.x, this.y + this.h/2, [this.y, this.y + this.h/2]);
+			this.ur_line.setValues(this.x + this.w/2, this.y, this.x, this.y + this.h/2, [this.y, this.y + this.h/2]);
+			this.ll_line.setValues(this.x, this.y - this.h/2, this.x - this.w/2, this.y, [this.y - this.h/2, this.y]);
+			this.lr_line.setValues(this.x, this.y - this.h/2, this.x + this.w/2, this.y, [this.y - this.h/2, this.y]);
+		}
+
+		intersects(r) {
+			this.updateLines();
+			r.updateLines();
+
+			if ( 
+	this.ul_line.intersects(r.ul_line) || this.ul_line.intersects(r.ur_line) || this.ul_line.intersects(r.ll_line) || this.ul_line.intersects(r.lr_line) ||
+	this.ur_line.intersects(r.ul_line) || this.ur_line.intersects(r.ur_line) || this.ur_line.intersects(r.ll_line) || this.ur_line.intersects(r.lr_line) ||
+	this.ll_line.intersects(r.ul_line) || this.ll_line.intersects(r.ur_line) || this.ll_line.intersects(r.ll_line) || this.ll_line.intersects(r.lr_line) ||
+	this.lr_line.intersects(r.ul_line) || this.lr_line.intersects(r.ur_line) || this.lr_line.intersects(r.ll_line) || this.lr_line.intersects(r.lr_line) 
+			) {
+				console.log("INTERSECT!");
+				return true;
+			}
+
+			return false;
+
+		}
+
+		draw(ctx, w, h) {
+			this.updateLines();
+			
+			this.ul_line.draw(ctx, w, h);
+			this.ur_line.draw(ctx, w, h);
+			this.ll_line.draw(ctx, w, h);
+			this.lr_line.draw(ctx, w, h);
+		}
+		
+	};
+
+
+	var r1 = new GDiamond(20, 40, 0, 0);
+	var r2 = new GDiamond(39, 40, 20, 20);
+
+	var canvas = document.getElementById('tCanvas');
+
+	function loop() {
+		var ctx = canvas.getContext("2d");
+		r1.draw(ctx, 800, 600);
+		r2.draw(ctx, 800, 600);
+
+		r1.intersects(r2);
+		
+	}
+
+
+	setInterval(function(){ loop();}, 16);
+
+
+</script>
+</body>
+</html>
+
