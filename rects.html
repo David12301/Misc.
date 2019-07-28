@@ -7,12 +7,26 @@
 
 <script>
 
+
+	function compare_numbers(n1, n2) {
+	
+		var dif = Math.abs(n1-n2);
+		if(dif < 0.01) {
+			return true;
+		}
+
+		return false;
+	}
+
 	class GLine {
 		constructor(x1, y1, x2, y2, limits) {
 			this.m = (y2-y1)/(x2-x1);
 			this.x1 = x1;
 			this.y1 = y1;
+			this.x2 = x2;
+			this.y2 = y2;
 			this.limits = limits;
+			this.color = "#000000";
 		}
 
 		setValues(x1, y1, x2, y2, limits) {
@@ -36,10 +50,98 @@
 		intersects(line) {
 			var m1 = this.m;
 			var m2 = line.m;
-			if(m1-m2 == 0){
-				return false;
+
+			//This is a vertical line
+			if ( this.x1 == this.x2 ) {
+				if ( line.y1 == line.y2 ) {
+					//Other line is horizontal
+					if ( this.x1 >= line.x1 && this.x1 <= line.x2 && line.y1 >=this.y1 && line.y1 <= this.y2 ) {
+						this.color = "#ff0000";
+						line.color = "#ff0000";
+						return true;
+					} else {
+						return false;
+					}
+				
+				} else if ( line.x1 == line.x2 ) {
+					//Other line is vertical
+					if ( this.x1 == line.x1 && ( (this.y1 >= line.y1 && this.y1 <= line.y2) || (this.y2 >= line.y1 && this.y2 <= line.y2) ) ) {
+						this.color = "#ff0000";
+						line.color = "#ff0000";
+						return true;
+					} else {
+						return false;
+					}
+
+				} else {
+					//Other line is regular
+					return line.intersects(this);
+				}
+			}
+			
+			//this is an horizontal line
+			if ( this.y1 == this.y2 ) {
+				if ( line.y1 == line.y2 ) {
+					// Other line is horizontal
+					if ( this.y1 == line.y1 && (this.x1 >= line.x1 && this.x1 <= line.x2) || (this.x2 >= line.x1 && this.x2 <= line.x2) ) {
+						this.color = "#ff0000";
+						line.color = "#ff0000";
+						return true;
+					} else {
+						return false;
+					}
+				} else if ( line.x1 == line.x2 ) {
+					// Other line is vertical
+					return line.intersects(this);
+				} else {
+					// Other line is regular
+					return line.intersects(this);
+				}
 			}
 
+			// Regular lines
+
+			//the other line is an horizontal line
+			if ( line.y1 == line.y2 ) {
+				var _x1 = this.finv(this.limits[0]);
+				var _x2 = this.finv(this.limits[1]);
+				if ( line.y1 >= this.limits[0] && line.y1 <= this.limits[1]  && 
+					( (_x1 >= line.x1 && _x1 <= line.x2) || (_x2 >= line.x1 && _x2 <= line.x2) ) ) {
+					this.color = "#ff0000";
+					line.color = "#ff0000";
+					return true;
+				} else {
+					return false;
+				}
+			}
+
+			//the other line is a vertical line
+			if ( line.x1 == line.x2 ) {
+				var _x1 = this.finv(this.limits[0]);
+				var _x2 = this.finv(this.limits[1]);
+				if ( line.x1 >= _x1 && line.x1 <= _x2 && 
+					( (this.limits[0] >= line.y1 && this.limits[0] <= line.y2) || (this.limits[1] >= line.y1 && this.limits[1] <= line.y2)) ) {
+					this.color = "#ff0000";
+					line.color = "#ff0000";
+					return true;
+				} else {
+					return false;
+				}
+			}
+
+
+			//Prevents division by zero
+			if(m1-m2 == 0) {
+				//Same slope
+				if ( (this.limits[0] >= line.limits[0] && this.limits[0] <= line.limits[1]) || 
+					(this.limits[1] >= line.limits[0] && this.limits[1] <= line.limits[1]) ) {
+					this.color = "#ff0000";
+					line.color = "#ff0000";
+					return true;
+				}
+
+				return false;
+			}
 			var x = (this.m * this.x1 - line.m * line.x1 + line.y1 - this.y1)/(m1-m2);
 			var y = this.f(x);
 			var oy = line.f(x);
@@ -48,14 +150,93 @@
 			var oisOnBoundary = oy <= line.limits[1] && oy >= line.limits[0];  
 
 			if ( y == oy && isOnBoundary && oisOnBoundary ) {
+				this.color = "#ff0000";
+				line.color = "#ff0000";
 				return true;
 			}
+
+
+			return false;
+		}
+
+		intersects_circle(circle) {
+			var a = (this.m * this.m + 1);
+			var b = (2 * this.m * this.y1 + 2 * circle.y * this.m - 2 * this.m * this.m * this.x1 - 2 * circle.x);
+			var c = (this.m * this.m * this.x1 * this.x1 - 2 * this.m * this.x1 * this.y1 + this.y1 * this.y1 - 2 * this.m * circle.y * this.x1 + 
+			2 * circle.y * this.y1 + circle.y * circle.y + circle.x * circle.x - circle.r * circle.r);
+
+			//console.log("a: " + a);
+			//console.log("c: " + c);
+			//console.log("b: " + b);
+
+			var d = b * b - 4 * a * c;
+			//console.log("d: " + d);
+			
+			// d < 0 => no intersection, d = 0 => line is tangent, d > 0 => line intersects circle
+			if ( d < 0 ) {
+				return false;
+			}
+
+			var x1 = (-b + Math.sqrt(d) )/(2 * a);
+			var x2 = (-b - Math.sqrt(d) )/(2 * a);
+			var y1 = this.f(x1);
+			var y2 = this.f(x2);
+
+			//console.log("(" + x1 + ", " + y1 + ") , (" + x2 + ", " + y2 + ")");
+
+
+			var isOnBoundary1  = y1 <= this.limits[1] && y1 >= this.limits[0];  
+			var isOnBoundary2  = y2 <= this.limits[1] && y2 >= this.limits[0];  
+			if ( isOnBoundary1 || isOnBoundary2 ) {
+				this.color = "#ff0000";
+				circle.color = "#ff0000";
+				return true;
+			} 
+//			if ( isOnBoundary ) {
+//				var dist = Math.sqrt( x1 * x1 + y1 * y1);
+//				if ( dist <= circle.r ) {
+//					this.color = "#ff0000";
+//					circle.color = "#ff0000";
+//					return true;
+//				}
+//			}
+//			isOnBoundary  = y2 >= this.limits[0] && y2 <= this.limits[1];  
+//			if ( isOnBoundary ) {
+//				var dist = Math.sqrt( x2 * x2 + y2 * y2);
+//				if ( dist < circle.r || compare_numbers(dist, circle.r) ) {
+//					this.color = "#ff0000";
+//					circle.color = "#ff0000";
+//					return true;
+//				}
+//			}
 
 			return false;
 		}
 
 
 		draw(ctx, w, h) {
+			var ex = w/2;
+			var ey = h/2; 
+
+			//Horizontal Line
+			if ( this.m == 0 ) {
+				ctx.beginPath();
+				ctx.strokeStyle = this.color;
+				ctx.moveTo(this.x1 + ex, -this.y1 + ey);
+				ctx.lineTo(this.x2 + ex, -this.y1 + ey);
+				ctx.stroke();
+				return;
+			}
+			//Vertical line
+			if ( this.x1 == this.x2 ) {
+				ctx.beginPath();
+				ctx.strokeStyle = this.color;
+				ctx.moveTo(this.x1 + ex, -this.y1 + ey);
+				ctx.lineTo(this.x1 + ex, -this.y2 + ey);
+				ctx.stroke();
+				return;
+			}
+
 			var y1 = this.limits[0];
 			var y2 = this.limits[1];
 			var x1 = this.finv(y1);
@@ -68,6 +249,8 @@
 			var f_x2 = this.finv(y2) + w/2;
 			var f_y2 = -y2 + h/2;
 
+			ctx.beginPath();
+			ctx.strokeStyle = this.color;
 			ctx.moveTo(f_x1, f_y1);
 			ctx.lineTo(f_x2, f_y2);
 			ctx.stroke();
@@ -108,12 +291,48 @@
 	this.ll_line.intersects(r.ul_line) || this.ll_line.intersects(r.ur_line) || this.ll_line.intersects(r.ll_line) || this.ll_line.intersects(r.lr_line) ||
 	this.lr_line.intersects(r.ul_line) || this.lr_line.intersects(r.ur_line) || this.lr_line.intersects(r.ll_line) || this.lr_line.intersects(r.lr_line) 
 			) {
-				console.log("INTERSECT!");
+				this.ul_line.color = "#ff0000";
+				this.ur_line.color = "#ff0000";
+				this.ll_line.color = "#ff0000";
+				this.lr_line.color = "#ff0000";
+				r.ul_line.color = "#ff0000";
+				r.ur_line.color = "#ff0000";
+				r.ll_line.color = "#ff0000";
+				r.lr_line.color = "#ff0000";
 				return true;
 			}
 
 			return false;
 
+		}
+
+		intersects_line(line) {
+			if(this.ul_line.intersects(line) || this.ur_line.intersects(line) || this.ll_line.intersects(line) || this.lr_line.intersects(line) ) {
+				this.ul_line.color = "#ff0000";
+				this.ur_line.color = "#ff0000";
+				this.ll_line.color = "#ff0000";
+				this.lr_line.color = "#ff0000";
+				line.color = "#ff0000";
+				return true;
+			}
+
+			return false;
+		}
+
+		intersects_circle(circle) {
+			if(this.ul_line.intersects_circle(circle) || this.ur_line.intersects_circle(circle) || 
+				this.ll_line.intersects_circle(circle) || this.lr_line.intersects_circle(circle) ) {
+				this.ul_line.color = "#ff0000";
+				this.ur_line.color = "#ff0000";
+				this.ll_line.color = "#ff0000";
+				this.lr_line.color = "#ff0000";
+				circle.color = "#ff0000";
+				return true;
+			}
+
+			return false;
+		
+		
 		}
 
 		draw(ctx, w, h) {
@@ -127,18 +346,65 @@
 		
 	};
 
+	class GCircle {
+		constructor(x, y, r) {
+			this.r = r;
+			this.x = x;
+			this.y = y;
+			this.color = "#000000";
+		}
 
-	var r1 = new GDiamond(20, 40, 0, 0);
-	var r2 = new GDiamond(39, 40, 20, 20);
+		draw(ctx, w, h) {
+			var ex = w/2;
+			var ey = h/2; 
+
+			var x1 = this.x + ex;
+			var y1 = -this.y + ey; 
+			ctx.beginPath();
+			ctx.strokeStyle = this.color;
+			ctx.arc(x1, y1, this.r, 0, 2 * Math.PI);
+			ctx.stroke();
+			
+		}
+	
+	};
+
+
+	var r1 = new GDiamond(20, 40, 61, 0);
+	var r2 = new GDiamond(40, 40, 100, 30);
+	var l1 = new GLine(5, -15, 50, -15, [-15, -15]);
+	var l2 = new GLine(5, -15, 5, 20, [-15, 20]);
+	var l3 = new GLine(-40, -15, 10, -15, [-15, -15]);
+
+	var l4 = new GLine(-60, -60, -40, -40, [-60, -40]);
+	var l5 = new GLine(-80, -80, -61, -61, [-80, -61]);
+	var circ1 = new GCircle(0,0,50);
+	
+	console.log(l4);
 
 	var canvas = document.getElementById('tCanvas');
 
 	function loop() {
 		var ctx = canvas.getContext("2d");
 		r1.draw(ctx, 800, 600);
-		r2.draw(ctx, 800, 600);
+		//r2.draw(ctx, 800, 600);
+		//l1.draw(ctx, 800, 600);
+		//l2.draw(ctx, 800, 600);
+		//l3.draw(ctx, 800, 600);
+		l4.draw(ctx, 800, 600);
+		//l5.draw(ctx, 800, 600);
+		circ1.draw(ctx, 800, 600);
 
-		r1.intersects(r2);
+		//r1.intersects(r2);
+		//r1.intersects_line(l1);
+		//r1.intersects_line(l2);
+		//r1.intersects_line(l3);
+
+		//l3.intersects(l1);
+		//l3.intersects(l2);
+		//l4.intersects(l5);
+		l4.intersects_circle(circ1);
+		r1.intersects_circle(circ1);
 		
 	}
 
