@@ -371,7 +371,7 @@
 
 
 	var r1 = new GDiamond(20, 40, 61, 0);
-	var r2 = new GDiamond(40, 40, 100, 30);
+	var r2 = new GDiamond(40, 40, 70, 25);
 	var l1 = new GLine(5, -15, 50, -15, [-15, -15]);
 	var l2 = new GLine(5, -15, 5, 20, [-15, 20]);
 	var l3 = new GLine(-40, -15, 10, -15, [-15, -15]);
@@ -387,7 +387,7 @@
 	function loop() {
 		var ctx = canvas.getContext("2d");
 		r1.draw(ctx, 800, 600);
-		//r2.draw(ctx, 800, 600);
+		r2.draw(ctx, 800, 600);
 		//l1.draw(ctx, 800, 600);
 		//l2.draw(ctx, 800, 600);
 		//l3.draw(ctx, 800, 600);
@@ -395,7 +395,7 @@
 		//l5.draw(ctx, 800, 600);
 		circ1.draw(ctx, 800, 600);
 
-		//r1.intersects(r2);
+		r1.intersects(r2);
 		//r1.intersects_line(l1);
 		//r1.intersects_line(l2);
 		//r1.intersects_line(l3);
